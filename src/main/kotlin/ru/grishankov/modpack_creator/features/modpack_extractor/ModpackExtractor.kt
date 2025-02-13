@@ -9,6 +9,8 @@ class ModpackExtractor(
     suspend fun execute() {
         val data = getModpackData()
 
+        downloadMavenMods(data.mavenMods)
+
         downloadMods(data.autoUpdateMods)
 
         createClientModpack(data)
@@ -16,5 +18,7 @@ class ModpackExtractor(
         createServerModpack(data)
 
         cleanTemp()
+
+        println("\n✅ Готово!")
     }
 }

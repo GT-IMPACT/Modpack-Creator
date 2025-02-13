@@ -14,6 +14,7 @@ class Configuration(private val json: Json) {
         private set
 
     var isDevEnvironment = false
+    var isDebug = false
 
     init {
         onCreate()

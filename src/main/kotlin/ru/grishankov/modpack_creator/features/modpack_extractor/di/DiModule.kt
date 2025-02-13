@@ -15,6 +15,7 @@ val featureModpackExtractorDiModule = module {
     singleOf(::CreateClientModpackUseCase)
     singleOf(::CreateServerModpackUseCase)
     singleOf(::CleanTempUseCase)
+    singleOf(::MavenDownloadUseCase)
 
     singleOf(::ModpackExtractorInteractorImpl).bind<ModpackExtractorInteractor>()
 

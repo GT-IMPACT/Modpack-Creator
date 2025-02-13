@@ -1,6 +1,7 @@
 package ru.grishankov.modpack_creator.features.modpack_extractor.interactors
 
 import ru.grishankov.modpack_creator.features.modpack_extractor.models.AutoUpdateMod
+import ru.grishankov.modpack_creator.features.modpack_extractor.models.MavenMod
 import ru.grishankov.modpack_creator.features.modpack_extractor.models.ModpackData
 import ru.grishankov.modpack_creator.features.modpack_extractor.usecases.*
 
@@ -9,6 +10,8 @@ interface ModpackExtractorInteractor {
     suspend fun getModpackData(): ModpackData
 
     suspend fun downloadMods(mods: List<AutoUpdateMod>)
+
+    suspend fun downloadMavenMods(mods: List<MavenMod>)
 
     suspend fun createClientModpack(data: ModpackData)
 
@@ -23,6 +26,7 @@ internal class ModpackExtractorInteractorImpl(
     private val createClientModpackUseCase: CreateClientModpackUseCase,
     private val createServerModpackUseCase: CreateServerModpackUseCase,
     private val cleanTempUseCase: CleanTempUseCase,
+    private val mavenDownloadUseCase: MavenDownloadUseCase,
 ) : ModpackExtractorInteractor {
 
     override suspend fun getModpackData(): ModpackData {
@@ -31,6 +35,10 @@ internal class ModpackExtractorInteractorImpl(
 
     override suspend fun downloadMods(mods: List<AutoUpdateMod>) {
         downloadModsUseCase.execute(mods)
+    }
+
+    override suspend fun downloadMavenMods(mods: List<MavenMod>) {
+        mavenDownloadUseCase.execute(mods)
     }
 
     override suspend fun createClientModpack(data: ModpackData) {

@@ -22,7 +22,11 @@ class DownloadModsUseCase(
     suspend fun execute(mods: List<AutoUpdateMod>) {
         withContext(Dispatchers.IO) {
 
-            println("\n📂 Скачивание файлов...")
+            println("\n📂 Скачивание внешних модов...")
+
+            if (mods.isEmpty()) {
+                println("📂 Список внешних модов пуст, пропуск шага...")
+            }
 
             mods.map { mod ->
                 async {

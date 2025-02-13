@@ -68,6 +68,7 @@ class CreateClientModpackUseCase(
             zipFolder(
                 folder = clientFolder,
                 outputZip = outputZip,
+                configuration = configuration,
             )
         }
     }

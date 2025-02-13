@@ -8,9 +8,6 @@ import ru.grishankov.modpack_creator.core.copyFilesWithStructure
 import ru.grishankov.modpack_creator.core.zipFolder
 import ru.grishankov.modpack_creator.features.modpack_extractor.models.ModpackData
 import java.io.File
-import java.time.LocalDate
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 
 class CreateServerModpackUseCase(
     private val configuration: Configuration,
@@ -65,6 +62,7 @@ class CreateServerModpackUseCase(
             zipFolder(
                 folder = serverFolder,
                 outputZip = outputZip,
+                configuration = configuration,
             )
         }
     }

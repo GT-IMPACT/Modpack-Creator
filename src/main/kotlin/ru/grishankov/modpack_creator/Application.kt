@@ -15,9 +15,14 @@ suspend fun main(args: Array<String>) {
         )
     }
 
+    val config = Injector.get<Configuration>()
+
     args.find { it.contains("--dev") }?.also {
-        val config = Injector.get<Configuration>()
         config.isDevEnvironment = true
+    }
+
+    args.find { it.contains("--debug") }?.also {
+        config.isDebug = true
     }
 
     args.forEach { arg ->

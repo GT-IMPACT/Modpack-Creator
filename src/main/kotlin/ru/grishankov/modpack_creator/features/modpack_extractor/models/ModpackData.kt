@@ -9,6 +9,7 @@ data class ModpackData(
     val metadataPath: String,
     val outputPrefixFileName: String,
     val autoUpdateMods: List<AutoUpdateMod>,
+    val mavenMods: List<MavenMod>,
     val clientOnlyMods: List<String>,
 )
 
@@ -16,4 +17,9 @@ data class ModpackData(
 data class AutoUpdateMod(
     val fileName: String,
     val downloadLink: String,
+)
+
+@Serializable
+data class MavenMod(
+    val artefactName: String,
 )

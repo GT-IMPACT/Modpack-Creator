@@ -7,6 +7,7 @@ data class SettingConfig(
     val modpackPath: String = Constants.MODPACK_DEFAULT_PATH,
     val outputPath: String = Constants.MODPACK_DEFAULT_OUTPUT_PATH,
     val tempPath: String = Constants.TEMP_PATH,
+    val mavenBaseUrl: String = "",
 ) {
     companion object {
         val Default = SettingConfig()
