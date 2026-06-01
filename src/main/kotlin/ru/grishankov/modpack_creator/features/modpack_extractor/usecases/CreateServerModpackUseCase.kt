@@ -30,6 +30,7 @@ class CreateServerModpackUseCase(
             // Others
             File(configuration.settingConfig.modpackPath, data.otherPath)
                 .listFiles()
+                .orEmpty()
                 .forEach { it.copyRecursively(File(serverFolder, it.name)) }
 
             // Mods

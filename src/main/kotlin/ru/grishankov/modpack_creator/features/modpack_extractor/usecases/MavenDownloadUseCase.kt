@@ -14,6 +14,7 @@ import ru.grishankov.modpack_creator.features.modpack_extractor.models.MavenMod
 import java.io.File
 import java.io.FileOutputStream
 import java.net.URL
+import java.util.Base64
 
 class MavenDownloadUseCase(
     private val configuration: Configuration,
@@ -51,7 +52,12 @@ class MavenDownloadUseCase(
             val mavenMods = mods.map { it.artefactName }
 
             val data = runCatching {
-                HttpClient.ktorClient.get(url)
+                HttpClient.ktorClient.get(url) {
+                    basicAuth(
+                        username = System.getenv("MAVEN_USER"),
+                        password = System.getenv("MAVEN_PASSWORD"),
+                    )
+                }
                     .body<MavenArtefacts>()
                     .items
                     .distinctBy { it.name }
@@ -81,6 +87,14 @@ class MavenDownloadUseCase(
 
                     try {
                         val connection = URL(asset.downloadUrl).openConnection()
+
+                        val username = System.getenv("MAVEN_USER")
+                        val password = System.getenv("MAVEN_PASSWORD")
+
+                        val basic = Base64.getEncoder()
+                            .encodeToString("$username:$password".toByteArray(Charsets.UTF_8))
+
+                        connection.setRequestProperty("Authorization", "Basic $basic")
 
                         connection.getInputStream().use { input ->
                             FileOutputStream(outputFile).use { output ->

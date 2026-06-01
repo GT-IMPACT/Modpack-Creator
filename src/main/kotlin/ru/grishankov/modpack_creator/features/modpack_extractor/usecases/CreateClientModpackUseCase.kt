@@ -33,6 +33,7 @@ class CreateClientModpackUseCase(
             // Metadata
             File(configuration.settingConfig.modpackPath, data.metadataPath)
                 .listFiles()
+                .orEmpty()
                 .forEach { it.copyRecursively(File(clientFolder, it.name)) }
 
             // Others
@@ -41,6 +42,7 @@ class CreateClientModpackUseCase(
 
             File(configuration.settingConfig.modpackPath, data.otherPath)
                 .listFiles()
+                .orEmpty()
                 .forEach { it.copyRecursively(File(dotMinecraftFolder, it.name)) }
 
             // Mods
@@ -48,10 +50,12 @@ class CreateClientModpackUseCase(
             modsFolder.mkdirs()
             File(configuration.settingConfig.modpackPath, data.modsPath)
                 .listFiles()
+                .orEmpty()
                 .forEach { it.copyRecursively(File(modsFolder, it.name)) }
 
             File(configuration.settingConfig.tempPath, Constants.TEMP_DOWNLOAD_PATH)
                 .listFiles()
+                .orEmpty()
                 .forEach { it.copyRecursively(File(modsFolder, it.name)) }
 
             // Create Zip
