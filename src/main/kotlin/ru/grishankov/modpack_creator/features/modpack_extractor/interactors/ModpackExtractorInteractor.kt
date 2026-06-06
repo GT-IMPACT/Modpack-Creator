@@ -9,6 +9,8 @@ interface ModpackExtractorInteractor {
 
     suspend fun getModpackData(): ModpackData
 
+    suspend fun createVersionFile(data: ModpackData)
+
     suspend fun downloadMods(mods: List<AutoUpdateMod>)
 
     suspend fun downloadMavenMods(mods: List<MavenMod>)
@@ -22,6 +24,7 @@ interface ModpackExtractorInteractor {
 
 internal class ModpackExtractorInteractorImpl(
     private val modpackDataExtractorUseCase: ModpackDataExtractorUseCase,
+    private val createModpackVersionUseCase: CreateModpackVersionUseCase,
     private val downloadModsUseCase: DownloadModsUseCase,
     private val createClientModpackUseCase: CreateClientModpackUseCase,
     private val createServerModpackUseCase: CreateServerModpackUseCase,
@@ -31,6 +34,10 @@ internal class ModpackExtractorInteractorImpl(
 
     override suspend fun getModpackData(): ModpackData {
         return modpackDataExtractorUseCase.execute()
+    }
+
+    override suspend fun createVersionFile(data: ModpackData) {
+        createModpackVersionUseCase.execute(data)
     }
 
     override suspend fun downloadMods(mods: List<AutoUpdateMod>) {

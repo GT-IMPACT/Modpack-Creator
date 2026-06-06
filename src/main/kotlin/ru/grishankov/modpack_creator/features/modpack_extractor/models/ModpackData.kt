@@ -8,6 +8,7 @@ data class ModpackData(
     val otherPath: String,
     val metadataPath: String,
     val outputPrefixFileName: String,
+    val version: String,
     val autoUpdateMods: List<AutoUpdateMod>,
     val mavenMods: List<MavenMod>,
     val clientOnlyMods: List<String>,

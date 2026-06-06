@@ -15,7 +15,15 @@ class CreateClientModpackUseCase(
     suspend fun execute(data: ModpackData) {
         return withContext(Dispatchers.IO) {
 
-            println("\n📂 Создание клиентского модпака ${data.outputPrefixFileName}...")
+            val outputName = buildString {
+                append(data.outputPrefixFileName)
+                if (data.version.isNotBlank()) {
+                    append("-")
+                    append(data.version)
+                }
+            }
+
+            println("\n📂 Создание клиентского модпака $outputName...")
 
             val outputFolder = File(configuration.settingConfig.outputPath)
 
@@ -25,7 +33,7 @@ class CreateClientModpackUseCase(
 
             outputFolder.mkdirs()
 
-            val clientFolder = File(outputFolder, "${data.outputPrefixFileName}-CLIENT")
+            val clientFolder = File(outputFolder, "$outputName-CLIENT")
             clientFolder.mkdirs()
 
             println("📂 Копирование файлов...")
@@ -66,7 +74,7 @@ class CreateClientModpackUseCase(
                     append("-$version")
                 }
             }
-            val outputZip = File(outputFolder, "${data.outputPrefixFileName}$devPrefix-CLIENT.zip")
+            val outputZip = File(outputFolder, "$outputName$devPrefix-CLIENT.zip")
             outputZip.createNewFile()
 
             zipFolder(

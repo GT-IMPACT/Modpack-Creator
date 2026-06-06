@@ -16,13 +16,21 @@ class CreateServerModpackUseCase(
     suspend fun execute(data: ModpackData) {
         return withContext(Dispatchers.IO) {
 
-            println("\n📂 Создание серверного модпака ${data.outputPrefixFileName}...")
+            val outputName = buildString {
+                append(data.outputPrefixFileName)
+                if (data.version.isNotBlank()) {
+                    append("-")
+                    append(data.version)
+                }
+            }
+
+            println("\n📂 Создание серверного модпака $outputName...")
 
             val outputFolder = File(configuration.settingConfig.outputPath)
 
             outputFolder.mkdirs()
 
-            val serverFolder = File(outputFolder, "${data.outputPrefixFileName}-SERVER")
+            val serverFolder = File(outputFolder, "$outputName-SERVER")
             serverFolder.mkdirs()
 
             println("📂 Копирование файлов...")
@@ -57,7 +65,7 @@ class CreateServerModpackUseCase(
                     append("-$version")
                 }
             }
-            val outputZip = File(outputFolder, "${data.outputPrefixFileName}$devPrefix-SERVER.zip")
+            val outputZip = File(outputFolder, "$outputName$devPrefix-SERVER.zip")
             outputZip.createNewFile()
 
             zipFolder(

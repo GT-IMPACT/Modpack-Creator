@@ -11,6 +11,7 @@ import ru.grishankov.modpack_creator.features.modpack_extractor.usecases.*
 val featureModpackExtractorDiModule = module {
 
     singleOf(::ModpackDataExtractorUseCase)
+    singleOf(::CreateModpackVersionUseCase)
     singleOf(::DownloadModsUseCase)
     singleOf(::CreateClientModpackUseCase)
     singleOf(::CreateServerModpackUseCase)
