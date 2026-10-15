@@ -1,6 +1,7 @@
 package ru.grishankov.modpack_creator.features.modpack_extractor.usecases
 
 import io.ktor.client.call.*
+import io.ktor.client.plugins.*
 import io.ktor.client.request.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
@@ -9,104 +10,81 @@ import kotlinx.coroutines.withContext
 import ru.grishankov.modpack_creator.config.Configuration
 import ru.grishankov.modpack_creator.config.Constants
 import ru.grishankov.modpack_creator.core.HttpClient
+import ru.grishankov.modpack_creator.core.ModFileDownloader
+import ru.grishankov.modpack_creator.features.modpack_extractor.models.MavenArtefact
 import ru.grishankov.modpack_creator.features.modpack_extractor.models.MavenArtefacts
 import ru.grishankov.modpack_creator.features.modpack_extractor.models.MavenMod
 import java.io.File
-import java.io.FileOutputStream
-import java.net.URL
-import java.util.Base64
+import java.net.URI
 
-class MavenDownloadUseCase(
-    private val configuration: Configuration,
-) {
-
-    private val downloadFolder by lazy {
-        File(configuration.settingConfig.tempPath, Constants.TEMP_DOWNLOAD_PATH)
-    }
-
-    private val url = buildString {
-        append("https://")
-        append(configuration.settingConfig.mavenBaseUrl)
-        append("/service/rest/v1/search")
-        append("?")
-        append("sort=version")
-        append("&")
-        append("direction=desc")
-        append("&")
-        append("repository=maven-releases")
-        append("&")
-        append("group=space.impact")
-        append("&")
-        append("maven.extension=jar")
-    }
-
+class MavenDownloadUseCase(private val configuration: Configuration) {
     suspend fun execute(mods: List<MavenMod>) {
-        withContext(Dispatchers.IO) {
+        MavenDownloader(
+            File(configuration.settingConfig.tempPath, Constants.TEMP_DOWNLOAD_PATH),
+            "https://${configuration.settingConfig.mavenBaseUrl}/service/rest/v1/search",
+            HttpClient.ktorClient,
+            System.getenv("MAVEN_USER"), System.getenv("MAVEN_PASSWORD"),
+        ).execute(mods)
+    }
+}
 
-            println("\n📂 Скачивание файлов из Maven...")
-
-            if (mods.isEmpty()) {
-                println("📂 Список модов из Maven пуст, пропуск шага...")
-            }
-
-            val mavenMods = mods.map { it.artefactName }
-
-            val data = runCatching {
-                HttpClient.ktorClient.get(url) {
-                    basicAuth(
-                        username = System.getenv("MAVEN_USER"),
-                        password = System.getenv("MAVEN_PASSWORD"),
-                    )
-                }
-                    .body<MavenArtefacts>()
-                    .items
-                    .distinctBy { it.name }
-                    .mapNotNull { artefact ->
-
-                        if (!mavenMods.contains(artefact.name))
-                            return@mapNotNull null
-
-                        artefact.assets.firstOrNull { asset ->
-                            asset.downloadUrl.contains(artefact.version, true) && asset.maven2.extension == "jar"
-                        }
-                    }
-            }.getOrElse {
-                println("❌ Ошибка при обращении в Maven: ${it}")
-                emptyList()
-            }
-
-            data.map { asset ->
-                async {
-                    val fileName = asset.downloadUrl.substringAfterLast("/")
-                    val outputFile = File(downloadFolder, fileName)
-
-                    if (outputFile.exists()) {
-                        println("⚠️ $fileName уже был скачан")
-                        return@async
-                    }
-
-                    try {
-                        val connection = URL(asset.downloadUrl).openConnection()
-
-                        val username = System.getenv("MAVEN_USER")
-                        val password = System.getenv("MAVEN_PASSWORD")
-
-                        val basic = Base64.getEncoder()
-                            .encodeToString("$username:$password".toByteArray(Charsets.UTF_8))
-
-                        connection.setRequestProperty("Authorization", "Basic $basic")
-
-                        connection.getInputStream().use { input ->
-                            FileOutputStream(outputFile).use { output ->
-                                input.copyTo(output)
-                            }
-                        }
-                        println("✅ $fileName успешно скачан")
-                    } catch (e: Exception) {
-                        println("❌ Ошибка при скачивании $fileName: ${e.message}")
-                    }
-                }
-            }.awaitAll()
+internal class MavenDownloader(
+    private val downloadFolder: File,
+    private val searchUrl: String,
+    private val client: io.ktor.client.HttpClient,
+    private val username: String? = null,
+    private val password: String? = null,
+) {
+    suspend fun execute(mods: List<MavenMod>) = withContext<Unit>(Dispatchers.IO) {
+        println("\n📂 Скачивание файлов из Maven...")
+        if (mods.isEmpty()) {
+            println("📂 Список модов из Maven пуст, пропуск шага...")
+            return@withContext
         }
+        val requested = mods.map { it.artefactName }.toSet()
+        require(requested.none { it.isBlank() }) { "Пустое имя Maven-артефакта в конфиге" }
+        val latest = linkedMapOf<String, MavenArtefact>()
+        val seenTokens = mutableSetOf<String>()
+        var token: String? = null
+        do {
+            val page = client.get(searchUrl) {
+                expectSuccess = true
+                parameter("sort", "version")
+                parameter("direction", "desc")
+                parameter("repository", "maven-releases")
+                parameter("group", "space.impact")
+                parameter("maven.extension", "jar")
+                token?.let { parameter("continuationToken", it) }
+                if (username != null && password != null) basicAuth(username, password)
+            }.body<MavenArtefacts>()
+            // Nexus sorts versions descending across pages; keep the first version of each requested name.
+            for (artifact in page.items) if (artifact.name in requested && artifact.name !in latest) latest[artifact.name] = artifact
+            token = page.continuationToken?.takeIf { it.isNotBlank() }
+            check(token == null || seenTokens.add(token)) { "Maven вернул повторяющийся continuationToken; сборка остановлена" }
+        } while (token != null)
+
+        val missing = requested - latest.keys
+        check(missing.isEmpty()) { "В Maven не найдены моды из конфига: ${missing.sorted().joinToString()}. Сборка остановлена" }
+        val selected = latest.values.map { artifact ->
+            val asset = artifact.assets.firstOrNull {
+                it.maven2.extension == "jar" && it.maven2.classifier.isNullOrBlank()
+            } ?: error("Нет обычного JAR для ${artifact.name}:${artifact.version} (dev/sources/javadoc не подходят). Сборка остановлена")
+            val fileName = URI(asset.downloadUrl).path.substringAfterLast('/')
+            require(fileName.endsWith(".jar", ignoreCase = true) && fileName.none { it in "\\/:" }) { "Некорректное имя Maven JAR для ${artifact.name}" }
+            artifact to (asset to File(downloadFolder, fileName))
+        }
+        check(selected.map { it.second.second.name }.distinct().size == selected.size) { "Maven-артефакты имеют одинаковые имена файлов" }
+        val downloader = ModFileDownloader(client, username, password)
+        selected.map { (artifact, target) ->
+            async {
+                try {
+                    downloader.download(target.first.downloadUrl, target.second, target.first.checksum)
+                } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                    throw cancelled
+                } catch (failure: Exception) {
+                    throw IllegalStateException("Не скачан мод ${artifact.name}:${artifact.version}. Сборка остановлена", failure)
+                }
+            }
+        }.awaitAll()
     }
 }

@@ -9,11 +9,11 @@ class ModpackExtractor(
     suspend fun execute() {
         val data = getModpackData()
 
-        createVersionFile(data)
-
         downloadMavenMods(data.mavenMods)
 
         downloadMods(data.autoUpdateMods)
+
+        createVersionFile(data)
 
         createClientModpack(data)
 

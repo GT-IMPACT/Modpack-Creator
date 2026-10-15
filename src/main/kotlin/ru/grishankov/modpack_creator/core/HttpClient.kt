@@ -3,6 +3,7 @@ package ru.grishankov.modpack_creator.core
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.plugins.contentnegotiation.*
+import io.ktor.client.plugins.HttpTimeout
 import io.ktor.client.plugins.logging.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
@@ -16,6 +17,7 @@ object HttpClient : KoinComponent {
     private val json by inject<Json>()
 
     val ktorClient = HttpClient(CIO) {
+        install(HttpTimeout) { connectTimeoutMillis = 20000; socketTimeoutMillis = 60000; requestTimeoutMillis = 300000 }
         install(ContentNegotiation) {
             json(json)
         }
